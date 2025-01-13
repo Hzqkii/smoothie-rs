@@ -236,7 +236,7 @@ if (pi := rc['pre-interp'])['enabled'].lower() in YES:
     
     if model_path.lower() == 'default' or model_path.lower() == 'auto':
         model_path = default_model_path
-        VERB(f"Using default model path: {model_path}")
+        verb(f"Using default model path: {model_path}")
     elif not path.isdir(model_path):
         default_model_dir = path.join(path.dirname(path.dirname(__file__)), "rife models")
 
