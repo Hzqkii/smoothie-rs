@@ -318,9 +318,9 @@ if (pi := rc['pre-interp'])['enabled'].lower() in YES:
         model_path=model_path,
         gpu_id=0,
         gpu_thread=1,
-        tta=False,
-        uhd=False,  # tune for 1440p+ content
-        sc=False  # scene change
+        tta=(pi['tta']).lower() in YES,
+        uhd=(pi['uhd']).lower() in YES,  # tune for 1440p+ content
+        sc=(pi['scene change']).lower() in YES  # scene change
     )
 
     if pi['masking'] in YES:
