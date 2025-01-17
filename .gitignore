@@ -10,6 +10,7 @@ lab/
 target/release/
 target/debug/
 target/.rustc_info.json
+target/linux-portable-enable
 !target/defaults.ini
 !target/encoding_presets.ini
 !target/recipe.ini
