@@ -1,4 +1,5 @@
 use std::env::current_exe;
+use std::path::PathBuf;
 use which::which;
 
 use crate::cli::Arguments;
@@ -75,10 +76,9 @@ pub fn build_commands(args: Arguments, payloads: Vec<Payload>, recipe: Recipe) -
     };
     let bin_dir_vspipe = cur_exe_dir.join(vs_bin);
     let vspipe_in_path = which("vspipe");
-    let vs_path = (
-        if args.vspipe_path.is_some(){
-        args.vspipe_path.unwrap()}
-    else if bin_dir_vspipe.exists() {
+    let vs_path = (if args.vspipe_path.is_some() {
+        args.vspipe_path.unwrap()
+    } else if bin_dir_vspipe.exists() {
         verb!("Using vspipe that's in same directory as binary");
         bin_dir_vspipe
     } else if vspipe_in_path.is_ok() {
@@ -110,7 +110,16 @@ pub fn build_commands(args: Arguments, payloads: Vec<Payload>, recipe: Recipe) -
     */
     let rc_string = (format!("{:?}", &recipe)).replace("Recipe { data: {", "{ \"data\": {");
 
+    let default_model_path: PathBuf;
 
+    if recipe.get_bool("pre-interp", "tta") {
+        if recipe.get("pre-interp", "factor") != "2x" {
+            panic!("pre-interp factor must be 2x when using Test Time Augmentation (RIFE v4>)");
+        }
+        default_model_path = portable::get_default_model_tta_path();
+    } else {
+        default_model_path = portable::get_default_model_path();
+    }
     let vs_args = vec![
         // "--progress".to_owned(),
         "--container".to_owned(),
@@ -120,8 +129,7 @@ pub fn build_commands(args: Arguments, payloads: Vec<Payload>, recipe: Recipe) -
         "--arg".to_owned(),
         format!("recipe={rc_string:?}"),
         "--arg".to_owned(),
-        format!("default_model_path={}", portable::get_default_model_path()
-            .display()),
+        format!("default_model_path={}", default_model_path.display()),
     ];
 
     let mut ret: Vec<SmCommand> = vec![];
@@ -157,7 +165,7 @@ pub fn build_commands(args: Arguments, payloads: Vec<Payload>, recipe: Recipe) -
                     "--start".to_owned(),
                     p.to_string(),
                     "--end".to_owned(),
-                    p.to_string()
+                    p.to_string(),
                 ]);
             }
         } else if args.tonull {
@@ -175,7 +183,7 @@ pub fn build_commands(args: Arguments, payloads: Vec<Payload>, recipe: Recipe) -
                     "--start".to_owned(),
                     p.to_string(),
                     "--end".to_owned(),
-                    p.to_string()
+                    p.to_string(),
                 ]);
             } else if args.stripaudio {
                 cur_cmd_arguments.append(&mut enc_args.clone());
