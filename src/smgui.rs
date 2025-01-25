@@ -95,7 +95,7 @@ pub fn sm_gui<'gui>(
         options,
         Box::new(|_cc|{
 
-            Ok(Box::new(
+            Box::new(
                 SmApp {
                     recipe_saved: format!("{:?}", recipe),
                     recipe,
@@ -108,9 +108,9 @@ pub fn sm_gui<'gui>(
                     args,
                     start_rendering: false,
                     sender: sender
-                }
-            ))
-        }),
+            }
+        )
+    }),
     )
 }
 
@@ -128,8 +128,7 @@ impl eframe::App for SmApp {
                     let winit::raw_window_handle::RawWindowHandle::Win32(handle) = _frame.window_handle().unwrap().as_raw() else {
                         panic!("Unsupported platform");
                     };
-                    let ptr = handle.hwnd.get() as *mut std::ffi::c_void;
-                    Some(windows::Win32::Foundation::HWND(ptr))
+                    Some(windows::Win32::Foundation::HWND(handle.hwnd.into()))
                     
                 } else {
                     None
@@ -158,7 +157,7 @@ impl eframe::App for SmApp {
                 ui.ctx().send_viewport_cmd(egui::ViewportCommand::Close);
             }
             egui::menu::bar(ui, |ui| {
-                egui::widgets::global_theme_preference_switch(ui);
+                egui::widgets::global_dark_light_mode_switch(ui);
                 if ui.button("README").clicked() {
                     self.show_about = true
                 }
