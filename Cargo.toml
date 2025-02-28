@@ -6,46 +6,49 @@ edition = "2021"
 build = "build.rs"
 
 [dependencies]
-clap = {version = "4.1.4 ", features = ["derive"] } # cli arg helper
-color-eyre = "0.6.2" # error handling
+clap = {version = "4.5.26", features = ["derive"] } # cli arg helper
+color-eyre = "0.6.3" # error handling
 ffprobe = "0.4.0"
 opener = "0.7.0"  # open file with default app
 rand = "0.9.0"  # randomly choose from fruits for suffix
 rfd = "0.15.2"  # open file dialog
 which = "7.0.2" # Get-Command / where.exe / which alternative
 
+
 # json stuff
-serde = "1.0.152" 
-serde_derive = "1.0.152"
-serde_json = "1.0.91"
+serde = "1.0.217" 
+serde_derive = "1.0.217"
+serde_json = "1.0.136"
 
 colored = "3.0.0"
 enable-ansi-support = "0.2.1"
-num-rational = "0.4.1"
-anyhow = "1.0.69"
-ureq = { version = "2.6.2", features = ["json"] }
+num-rational = "0.4.2"
+anyhow = "1.0.95"
+ureq = { version = "2.12.1", features = ["json"] }
 cty = "0.2.2"
 min-max = "0.1.8"
-indicatif = { version = "0.17.2", features = ["improved_unicode"] }
-regex = "1.7.2"
-indexmap = { version = "2.2.6", features = ["serde"] }
+indicatif = { version = "0.17.9", features = ["improved_unicode"] }
+regex = "1.11.1"
+indexmap = { version = "2.7.0", features = ["serde"] }
 
 # gui-related
 eframe = "0.31.0" # egui 'frame'work
-env_logger = "0.11.3"
-winit = "0.30.0" # load icon
-image = "0.25.1" # load icon
+
+env_logger = "0.11.6"
+winit = "0.30.8" # load icon
+image = "0.25.5" # load icon
 copypasta = "0.10.1" # copy to clipboard
 
 winapi = { version = "0.3.9", features = ["wincon"] }
-windows = { version = "0.60.0", features = ["Win32", "Win32_UI", "Win32_UI_WindowsAndMessaging"]}
+windows = { version = "0.60.0", features = ["Win32", "Win32_Foundation", "Win32_UI", "Win32_UI_WindowsAndMessaging"]}
+
 homedir = "0.3.4"
 ffpb = "0.1.2"
 kdam = { version = "0.6.2", features = ["derive", "gradient", "spinner", "rich"]}
 
 [build-dependencies]
 winres = "0.1" # give the exe an icon
-cc = "1.0.79"  # for /src/windows.c
+cc = "1.2.10"  # for /src/windows.c
 
 # make small binaries with --release
 [profile.release]

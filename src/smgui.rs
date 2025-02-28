@@ -9,7 +9,17 @@ use std::{
 };
 use copypasta::{ClipboardContext, ClipboardProvider};
 use eframe::egui;
+
+#[cfg(windows)]
 use winit::raw_window_handle::HasWindowHandle;
+
+#[cfg(windows)]
+use windows::Win32::Foundation::HWND;
+
+#[cfg(windows)]
+type WinHWND = Option<windows::Win32::Foundation::HWND>;
+#[cfg(not(windows))]
+type WinHWND = ();
 
 struct SmApp {
     recipe: Recipe,
@@ -23,7 +33,7 @@ struct SmApp {
     start_rendering: bool,
     // yeah that's the damn typename
     recipe_saved: String,
-    sender: Sender<(Recipe, Arguments, Option<windows::Win32::Foundation::HWND>)>
+    sender: Sender<(Recipe, Arguments, WinHWND)>
 }
 
 pub const WINDOW_NAME: &str = "smoothie-app";
@@ -76,7 +86,7 @@ pub fn sm_gui<'gui>(
     metadata: WidgetMetadata,
     recipe_filepath: String,
     args: Arguments,
-    sender: Sender<(Recipe, Arguments, Option<windows::Win32::Foundation::HWND>)>,
+    sender: Sender<(Recipe, Arguments, WinHWND)>,
 ) -> Result<(), eframe::Error> {
     env_logger::init(); // Log to stderr (if you run with `RUST_LOG=debug`).
 
@@ -94,8 +104,7 @@ pub fn sm_gui<'gui>(
         WINDOW_NAME,
         options,
         Box::new(|_cc|{
-
-           Ok(Box::new(
+            Ok(Box::new(
                 SmApp {
                     recipe_saved: format!("{:?}", recipe),
                     recipe,
@@ -123,18 +132,16 @@ impl eframe::App for SmApp {
                 let mut scoped_args = self.args.clone();
                 scoped_args.input = self.selected_files.clone();
 
-
-                let hwnd: Option<windows::Win32::Foundation::HWND> = if cfg!(windows) {
+                #[cfg(windows)]
+                let hwnd: Option<windows::Win32::Foundation::HWND> ={
                     let winit::raw_window_handle::RawWindowHandle::Win32(handle) = _frame.window_handle().unwrap().as_raw() else {
                         panic!("Unsupported platform");
                     };
                     let ptr = handle.hwnd.get() as *mut std::ffi::c_void;
-                    Some(windows::Win32::Foundation::HWND(ptr))
-                                      
-                } else {
-                    None
+                    Some(windows::Win32::Foundation::HWND(ptr))                 
                 };
-
+                #[cfg(not(windows))]
+                let hwnd: WinHWND = ();
                 let send_result = self.sender.send((self.recipe.clone(), scoped_args, hwnd));
 
                 if let Err(e) = send_result {

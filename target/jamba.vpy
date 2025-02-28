@@ -269,9 +269,11 @@ def Masking(
 if (pi := rc['pre-interp'])['enabled'].lower() in YES:
 
     model_path = pi['model'].strip('"')
-
-    if not path.isdir(model_path):
-
+    
+    if model_path.lower() == 'default' or model_path.lower() == 'auto':
+        model_path = default_model_path
+        verb(f"Using default model path: {model_path}")
+    elif not path.isdir(model_path):
         default_model_dir = path.join(path.dirname(path.dirname(__file__)), "rife models")
 
         relative_model_path = path.join(default_model_dir, model_path)
@@ -352,7 +354,7 @@ if (pi := rc['pre-interp'])['enabled'].lower() in YES:
         model_path=model_path,
         gpu_id=(pi['gpu id']),
         gpu_thread=(pi['gpu thread']),
-        tta=(pi['test-time augmentation']).lower() in YES,
+        tta = ((pi['test-time augmentation']).lower() in YES) or ((pi['tta']).lower() in YES),
         uhd=(pi['uhd']).lower() in YES,  # tune for 1440p+ content
         sc=(pi['scene change']).lower() in YES  # scene change
     )
@@ -504,7 +506,6 @@ if (fbd := rc['frame blending'])['enabled'].lower() in YES:
             weights=weights)
 
         fps = round(clip.fps_num / clip.fps_den)
-
         clip = havsfunc.ChangeFPS(clip, int(fbd['fps']))
         verb(
             f'Blending {fps} down to {fbd["fps"]} @ {fbd["intensity"]} intensity ({len(weights)} blur-frames) ' +
