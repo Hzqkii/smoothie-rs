@@ -272,6 +272,7 @@ if (pi := rc['pre-interp'])['enabled'].lower() in YES:
     
     if model_path.lower() == 'default' or model_path.lower() == 'auto':
         model_path = default_model_path
+        print("\033[33mWARN: Automatic rife model is deprecated, and marked for removal\033[0m")
         verb(f"Using default model path: {model_path}")
     elif not path.isdir(model_path):
         default_model_dir = path.join(path.dirname(path.dirname(__file__)), "rife models")
