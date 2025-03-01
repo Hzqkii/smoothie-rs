@@ -4,6 +4,7 @@ import vapoursynth as vs
 from vapoursynth import core
 
 from os import path
+from os import environ
 import sys
 from tempfile import gettempdir # ffms2 index
 from math import floor # toframes()
@@ -22,19 +23,37 @@ from scripts import adjust
 from scripts import filldrops
 from scripts.consts import YES, NO
 
+if environ.get("SM_RECIPE") not in [None, ""]:
+    print("USING MPV-PURPOSED SM_RECIPE ENV VAR")
+    recipe = environ.get("SM_RECIPE").replace('recipe=', '', 1)
+
+
 for var in ['input_video', 'recipe']:
+
+    if var == 'input_video' and 'video_in' in globals():
+        continue
     if var not in vars():
         raise NameError(
             "You need to pass in both input_video and recipe variables via VSPipe's --arg"
         )
+    
+    
+if 'input_video' in vars() and type(input_video) is bytes:
+    input_video = input_video.decode("utf-8")
+    if type(recipe) is bytes:
+        recipe = recipe.decode("utf-8")
 
 try:  # I have no clue why it returns a str the first time, that works though :shrug:
     recipe = json.loads(recipe)
-    rc = json.loads(recipe)['data']
+    # rc = json.loads(recipe)['data']
+    if type(recipe) is str:
+        rc = json.loads(recipe)['data']
+    else:
+        rc = (recipe)['data']
 
 except json.decoder.JSONDecodeError:
     print(f"\n\nRecipe: {recipe}\n")
-    raise Exception("Failed to parse the passed recipe as a JSON string")
+    raise Exception("Failed to parse the passed recipe as a JSON string" + recipe)
 
 
 def verb(*msg, **kwargs):
@@ -49,42 +68,59 @@ def eprint(*msg, **kwargs):
 verb(f"CONTEXT: Using vapoursynth bindings from {vs.__file__}")
 verb(f"CONTEXT: __file__: {__file__}")
 
-_, input_ext = path.splitext(input_video)
+if 'video_in' in vars():
+    clip = video_in
+    clip = core.std.AssumeFPS(clip, fpsnum=container_fps)
 
-temp_folder = gettempdir()
-cache_file = path.join(temp_folder, path.basename(input_video) + str(path.getsize(input_video)) + "-ffms2_index")
-
-if input_ext == '.avi':
-
-    clip: vs.VideoNode = core.avisource.AVISource(input_video)
 else:
+    _, input_ext = path.splitext(input_video)
 
-    verb(f"cache_file: {cache_file}")
+    temp_folder = gettempdir()
+    cache_file = path.join(temp_folder, path.basename(input_video) + str(path.getsize(input_video)) + "-ffms2_index")
 
-    clip: vs.VideoNode = core.ffms2.Source(
-        source=input_video,
-        cachefile=cache_file,
-    )
+    if input_ext == '.avi':
 
-    #clip: vs.VideoNode = core.lsmas.LWLibavSource(
-    #    # * Docs and plugin came from https://github.com/AkarinVS/L-SMASH-Works/tree/master/VapourSynth
-    #
-    #    source=input_video.replace("\\\\?\\", "").strip('"'),
-    #    # \\?\ caused by Rust's .canonicalize(), not supported by lsmas
-    #
-    #    cache=int(rc['miscellaneous']['source indexing'].lower() in YES),
-    #    # Smoothie comes bundled with the cachedir-tmp variant of this plugin
-    #    # * Create the index file (.lwi) to the same directory as the source file if set to 1.
-    #    # * The index file avoids parsing all frames in the source file at the next or later access.
-    #    # * Parsing all frames is very important for frame accurate seek.
-    #
-    #    prefer_hw=3
-    #    # * 0: Use default software decoder.
-    #    # * 1: Use NVIDIA CUVID acceleration for supported codec, otherwise use default software decoder.
-    #    # * 2: Use Intel Quick Sync Video acceleration for supported codec, otherwise use default software decoder.
-    #    # * 3: Try hardware decoder in the order of CUVID->QSV. If none is available then use default software decoder.
-    #
-    #)
+        clip: vs.VideoNode = core.avisource.AVISource(input_video)
+    else:
+
+        verb(f"cache_file: {cache_file}")
+
+        sp = rc['miscellaneous']['source plugin']
+
+        if sp in ['ffms','ffms2', 'ffms 2']:
+            clip: vs.VideoNode = core.ffms2.Source(
+                source=input_video,
+                cachefile=cache_file
+            )
+        elif sp in ['bs','bestsource', 'best source', 'best-source', 'best_source']:
+            clip = core.bs.VideoSource(input_video)
+        elif sp in ['lsmas','lsmash', 'lwsmashsource', 'smash', 'l-smash', 'l-smash-works', 'lsmashworks']:
+    
+            clip: vs.VideoNode = core.lsmas.LWLibavSource(
+                # * Docs and plugin came from https://github.com/AkarinVS/L-SMASH-Works/tree/master/VapourSynth
+            
+                source=input_video.replace("\\\\?\\", "").strip('"'),
+                # \\?\ caused by Rust's .canonicalize(), not supported by lsmas
+            
+                cache=int(rc['miscellaneous']['source indexing'].lower() in YES),
+                # Smoothie comes bundled with the cachedir-tmp variant of this plugin
+                # * Create the index file (.lwi) to the same directory as the source file if set to 1.
+                # * The index file avoids parsing all frames in the source file at the next or later access.
+                # * Parsing all frames is very important for frame accurate seek.
+            
+                prefer_hw=3
+                # * 0: Use default software decoder.
+                # * 1: Use NVIDIA CUVID acceleration for supported codec, otherwise use default software decoder.
+                # * 2: Use Intel Quick Sync Video acceleration for supported codec, otherwise use default software decoder.
+                # * 3: Try hardware decoder in the order of CUVID->QSV. If none is available then use default software decoder.
+            
+            )
+        else:
+            eprint(f"unknown source plugin `{sp}`, defaulting to ffms2")
+            clip: vs.VideoNode = core.ffms2.Source(
+                source=input_video,
+                cachefile=cache_file
+            )
 # source plugin
 
 # this is for fps comparisons
@@ -236,6 +272,7 @@ if (pi := rc['pre-interp'])['enabled'].lower() in YES:
     
     if model_path.lower() == 'default' or model_path.lower() == 'auto':
         model_path = default_model_path
+        print("\033[33mWARN: Automatic rife model is deprecated, and marked for removal\033[0m")
         verb(f"Using default model path: {model_path}")
     elif not path.isdir(model_path):
         default_model_dir = path.join(path.dirname(path.dirname(__file__)), "rife models")
@@ -316,9 +353,9 @@ if (pi := rc['pre-interp'])['enabled'].lower() in YES:
         factor_num=(pi['factor']).strip('x'),
         # multiplier=str(pi['factor']).strip('x'),
         model_path=model_path,
-        gpu_id=0,
-        gpu_thread=1,
-        tta=(pi['tta']).lower() in YES,
+        gpu_id=(pi['gpu id']),
+        gpu_thread=(pi['gpu thread']),
+        tta = ((pi['test-time augmentation']).lower() in YES) or ((pi['tta']).lower() in YES),
         uhd=(pi['uhd']).lower() in YES,  # tune for 1440p+ content
         sc=(pi['scene change']).lower() in YES  # scene change
     )
@@ -509,5 +546,8 @@ if (lt := rc['lut'])['enabled'].lower() in YES:
         lut_clip = core.resize.Bicubic(lut_clip, format=og_format, matrix=1)
 
         clip = core.std.Merge(clip, lut_clip, weight=float(lt['opacity']))
+
+if 'video_in' in globals():
+    clip = core.std.AssumeFPS(clip, fpsnum=rc['frame blending']['fps'])
 
 clip.set_output()

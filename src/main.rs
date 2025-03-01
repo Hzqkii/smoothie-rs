@@ -7,15 +7,12 @@ use recipe::Recipe;
 use render::vspipe_render;
 
 #[cfg(windows)]
-use winapi::um::{
-    wincon::GetConsoleWindow,
-    winuser::ShowWindow,
-};
+use winapi::um::{wincon::GetConsoleWindow, winuser::ShowWindow};
 
 mod cli;
 mod cmd;
 mod smgui;
-// mod ffpb;
+mod ffpb;
 // mod ffpb2;
 mod parse;
 mod portable;
@@ -106,9 +103,13 @@ fn main() {
             }
         }
 
-        let (sender, receiver) =
-            channel::<(Recipe, Arguments, Option<windows::Win32::Foundation::HWND>)>();
-        
+        #[cfg(windows)]
+        type WinHWND = Option<windows::Win32::Foundation::HWND>;
+        #[cfg(not(windows))]
+        type WinHWND = ();
+
+        let (sender, receiver) = channel::<(Recipe, Arguments, WinHWND)>();
+
         let _ret = smgui::sm_gui(recipe.clone(), _metadata, args.recipe.clone(), args, sender);
 
         #[cfg(windows)]
@@ -138,7 +139,17 @@ fn main() {
         (recipe, args)
     };
 
+    let return_recipe = args.return_recipe;
+    let progress = args.progress;
+
     payloads = video::resolve_input(&mut args, &recipe);
     let commands: Vec<SmCommand> = cmd::build_commands(args, payloads, recipe);
-    vspipe_render(commands);
+    if return_recipe {
+        for command in commands {
+            println!("recipe={}", (format!("{:?}", &command.recipe)).replace("Recipe { data: {", "{ \"data\": {"))
+        }
+
+    } else {
+        vspipe_render(commands, progress);
+    }
 }

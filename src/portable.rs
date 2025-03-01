@@ -69,8 +69,13 @@ pub fn get_local_path() -> PathBuf {
     return local_path;
 }
 
+pub fn get_recipe_path_custom(recipe_name: &str) -> PathBuf {
+    let recipe_path = get_config_path().join(recipe_name);
+    return recipe_path;
+}
+
 pub fn get_recipe_path() -> PathBuf {
-    let recipe_path = get_config_path().join("recipe.ini");
+    let recipe_path = get_recipe_path_custom("recipe.ini");
     if !recipe_path.exists() {
         fs::write(&recipe_path, DEFAULT_RECIPE).unwrap();
     }
@@ -90,6 +95,7 @@ pub fn get_defaults_path() -> PathBuf {
     return get_target_path().join("defaults.ini");
 }
 
+// Deprecated since a674b34
 pub fn get_default_model_path() -> PathBuf {
     let model_path = get_local_path().join("models/rife-v4.6");
     if !model_path.exists() {

@@ -79,6 +79,15 @@ impl Recipe {
         }
     }
 
+    pub fn get_option(&self, section: &str, key: &str) -> Option<String> {
+        match self.data.get(section) {
+            Some(section) => match section.get(key) {
+                Some(value) => Some(value.to_owned()),
+                None => None,
+            },
+            None => None,
+        }
+    }
     pub fn _get_mut(&mut self, section: &str, key: &str) -> String {
         match self.data.get_mut(section) {
             Some(section) => match section.get_mut(key) {
@@ -388,7 +397,7 @@ pub fn get_recipe(args: &mut Arguments) -> (Recipe, WidgetMetadata) {
     let rc_path = if PathBuf::from(&args.recipe).exists() {
         PathBuf::from(&args.recipe)
     } else {
-        let cur_dir_rc = portable::get_recipe_path();
+        let cur_dir_rc = portable::get_recipe_path_custom(&args.recipe);
         if !cur_dir_rc.exists() {
             panic!(
                 "Recipe filepath does not exist (expected at {})",

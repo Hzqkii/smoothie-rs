@@ -1,10 +1,8 @@
+use crate::portable;
 use clap::Parser;
 use std::fs::File;
-use std::fs;
 use std::io::{Read, Write};
 use std::{env, path::PathBuf, process::Command};
-use crate::portable;
-use homedir;
 
 /// Smoothen up your gameplay footage with Smoothie, yum!
 #[derive(Parser, Debug, Clone)]
@@ -70,6 +68,10 @@ pub struct Arguments {
     )]
     pub tompv: bool,
 
+    /// return recipe string, formatted for jamba.vpy
+    #[clap(long)]
+    pub return_recipe: bool,
+
     // external script/extensions
     /// Payload containing video timecodes, used by NLE scripts
     #[clap(long, conflicts_with = "input")]
@@ -100,6 +102,10 @@ pub struct Arguments {
     pub padding: bool,
 
     // debugging
+    /// Display progress bar
+    #[clap(long, default_value_t = false)]
+    pub progress: bool,
+
     /// Display details about recipe, what I personally use
     #[clap(short, long, default_value_t = false)]
     pub verbose: bool,
@@ -123,11 +129,16 @@ pub struct Arguments {
     pub encargs: Option<String>,
 
     /// Specify a recipe path
-    #[clap(short, long, default_value = "recipe.ini")]
+    #[clap(
+        short,
+        long,
+        default_value = "recipe.ini",
+        conflicts_with = "recipe_str"
+    )]
     pub recipe: String,
 
     /// Specify a recipe string
-    #[clap(long)]
+    #[clap(long, conflicts_with = "recipe")]
     pub recipe_str: Option<String>,
 
     /// Override recipe setting(s), e.g: --ov "flowblur;amount;40" "misc;container;MKV"
@@ -180,7 +191,7 @@ If you'd like help, take a screenshot of this message and your recipe and come o
         Some(arg) => arg,
         None => "".to_string(),
     };
-    // Fix scoping issues
+
     let current_exe = env::current_exe().expect("Could not determine exe");
     let current_exe_path = current_exe
         .parent()
@@ -206,8 +217,8 @@ If you'd like help, take a screenshot of this message and your recipe and come o
 
             let ini_path = presets_path.canonicalize().unwrap().display().to_string();
 
-            match opener::open(&ini_path){
-                Ok(()) =>{
+            match opener::open(&ini_path) {
+                Ok(()) => {
                     std::process::exit(0);
                 }
                 Err(e) => {
@@ -227,9 +238,8 @@ If you'd like help, take a screenshot of this message and your recipe and come o
 
             let ini_path = presets_path.canonicalize().unwrap().display().to_string();
 
-            
-            match opener::open(&ini_path){
-                Ok(()) =>{
+            match opener::open(&ini_path) {
+                Ok(()) => {
                     std::process::exit(0);
                 }
                 Err(e) => {
@@ -245,14 +255,14 @@ If you'd like help, take a screenshot of this message and your recipe and come o
 
             let ini_path = ini_path.canonicalize().unwrap().display().to_string();
 
-            match opener::open(&ini_path){
-                Ok(()) =>{
+            match opener::open(&ini_path) {
+                Ok(()) => {
                     std::process::exit(0);
                 }
                 Err(e) => {
                     panic!("Error {e}\n\nFailed opening file {:?}", ini_path);
                 }
-            }   
+            }
         }
         "root" | "dir" | "folder" => {
             if cfg!(target_os = "windows") {

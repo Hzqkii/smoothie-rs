@@ -11,6 +11,7 @@ target/release/
 target/debug/
 target/.rustc_info.json
 target/linux-portable-enable
+target/x86_64-pc-windows-gnu
 !target/defaults.ini
 !target/encoding_presets.ini
 !target/recipe.ini
